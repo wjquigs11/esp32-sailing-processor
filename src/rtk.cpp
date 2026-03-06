@@ -118,7 +118,8 @@ void updateRTKCommands(String command, float interval) {
 
 void setupRTK() {
   pBD->rtkOrientation = preferences.getInt("rtkOrientation",0);
-  log::toAll("configuring RTK, offset=" + rtkOrientation);
+  log::toAll("configuring RTK, offset=" + pBD->rtkOrientation);
+  log::toAll("NOTE: for most sensors, offset should be zero, configure with sensor parameter");
   RTKserial.begin(RTKBAUD,SERIAL_8N1,RTKRX,RTKTX);
   if (!RTKserial)
     log::toAll("failed to open RTK serial port");
