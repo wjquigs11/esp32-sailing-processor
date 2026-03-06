@@ -1,0 +1,8 @@
+.pio
+.vscode/*
+data/wifi.txt
+"data copy"
+.DS_Store
+NOTES.md
+src.copy
+esptool.sh

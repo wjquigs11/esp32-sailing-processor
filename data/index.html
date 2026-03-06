@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Mast Rotation Correction</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <script src="gauge.min.js"></script>
+    <!-- client-time.js will POST /clienttime to send browser time to ESP32 (one time only)-->
+    <script src="client-time.js"></script>
+    <script src="calculations.js"></script>
+  </head>
+  <body>
+    <div class="gauge-grid">
+      <div class="gauge-section">
+        <div class="gauge-container">
+          <canvas id="mast-angle-gauge"></canvas>
+        </div>
+        <p class="gauge-value"><span id="mast-angle-value">--°</span></p>
+        <form action="/params" method="post" class="pot-settings">
+          <div class="pot-row">
+            <label>lowSet/PotLo:</label>
+            <input type="text" name="lowSet" id="lowSet" value="%lowSet%">
+            <span>/ %PotLo%</span>
+          </div>
+          <div class="pot-row">
+            <label>PotValue:</label>
+            <span id="potValue">%PotValue%</span>
+          </div>
+          <div class="pot-row">
+            <label>highSet/PotHi:</label>
+            <input type="text" name="highSet" id="highSet" value="%highSet%">
+            <span>/ %PotHi%</span>
+          </div>
+          <button type="submit" class="pot-submit">Submit</button>
+        </form>
+      </div>
+      <div class="gauge-section">
+        <div class="gauge-container">
+          <canvas id="wind-compass-gauge"></canvas>
+        </div>
+        <p class="gauge-value"><span id="wind-info">AWA: --°<br>AWS: -- kts</span></p>
+        <p class="gauge-value"><span id="stw-info">STW: -- kts</span></p>
+        <p class="gauge-value"><span id="vmg-info">VMG: -- kts</span></p>
+      </div>
+    </div>
+
+    <!-- Wind Correction Toggle -->
+    <div class="correction-toggle">
+      <label>
+        <input type="checkbox" id="windCorrectionToggle" onchange="toggleWindCorrection()">
+        Correction On/Off
+      </label>
+      <div id="correctionStatus"></div>
+    </div>
+    <script src="menu.js"></script>
+    <script src="app.js"></script>
+    <script src="gauge-script.js"></script>
+  </body>
+</html>

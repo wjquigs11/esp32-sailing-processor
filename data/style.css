@@ -1,0 +1,218 @@
+html {
+  font-family: Arial, Helvetica, sans-serif; 
+  display: inline-block; 
+  text-align: center;
+}
+h1 {
+  font-size: 1.8rem; 
+  color: white;
+}
+p { 
+  font-size: 1.4rem;
+}
+.topnav { 
+  overflow: hidden; 
+  background-color: #0A1128;
+}
+body {  
+  margin: 0;
+  padding: 20px;
+  background-color: #f5f5f5;
+  position: relative;
+}
+.reading { 
+  font-size: 2.8rem; 
+}
+
+.content {
+  padding: 5%;
+  text-align: center;
+}
+.card-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  justify-items: center;
+}
+.card {
+  background-color: white;
+  box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 5px;
+  overflow: visible;
+  box-sizing: border-box;
+  min-height: 350px;
+}
+.card-title { 
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #034078
+}
+
+.button {
+  background-color: #F44336;
+  border: none;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 18px;
+  border-radius: 4px;
+  width: 20%;
+}
+
+.multibutton {
+  background-color: #F44336;
+  border: none;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 18px;
+  border-radius: 4px;
+  width: 20%;
+}
+
+.button-row {
+  display: flex;
+  justify-content: center;
+  margin: 0.25 em;
+}
+
+.button-row button {
+  flex: 1;
+  margin: 0.25em;
+}
+canvas {
+  max-width: 100%;
+  height: auto;
+  margin: 5px 0;
+  display: block;
+}
+
+/* Container for the gauge to ensure proper sizing and prevent cutoff */
+.gauge-container {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  position: relative;
+  padding: 5px;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* Ensure the gauge canvas has enough space */
+#gauge-coop {
+  width: 100%;
+  height: auto;
+  max-width: 300px;
+}
+
+/* Rotate the mast angle gauge 180 degrees so needle root is at top */
+#defaultgauge {
+  transform: rotate(180deg);
+}
+
+/* Rotate the AWA gauge -90 degrees so 0 is at top */
+#awagauge {
+  transform: rotate(-90deg);
+}
+
+
+
+/* Gauge grid layout */
+.gauge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.gauge-section {
+  text-align: center;
+}
+
+.gauge-section h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.gauge-value {
+  margin: 10px 0 0 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+/* Pot value settings */
+.pot-settings {
+  margin-top: 15px;
+  text-align: left;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pot-row {
+  margin-bottom: 8px;
+}
+
+.pot-row label {
+  display: inline-block;
+  width: 120px;
+}
+
+.pot-row input[type="text"] {
+  width: 100px;
+  padding: 4px;
+}
+
+.pot-submit {
+  margin-top: 10px;
+  width: 100%;
+  padding: 8px;
+  background-color: #034078;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.pot-submit:hover {
+  background-color: #023056;
+}
+
+.pot-submit:active {
+  background-color: #011d34;
+}
+
+/* Wind correction toggle */
+.correction-toggle {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.correction-toggle label {
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.correction-toggle input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+#correctionStatus {
+  margin-top: 5px;
+  font-size: 0.9rem;
+  color: #666;
+}

@@ -1,0 +1,420 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="highcharts.js"></script>
+  <script src="calculations.js"></script>
+  <style>
+    body {
+      min-width: 310px;
+      max-width: 800px;
+      height: auto;
+      margin: 0 auto;
+    }
+    h2 {
+      font-family: Arial;
+      font-size: 2.5rem;
+      text-align: center;
+    }
+    .container {
+      margin-bottom: 20px; /* Space between charts */
+    }
+  </style>
+</head>
+<body>
+  <h2>Wind Data</h2>
+  
+  <!-- Wind Statistics Section -->
+  <div class="container" style="text-align: center; background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+    <h3 style="margin: 0 0 10px 0; color: #333;">Wind Statistics</h3>
+    <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
+      <div style="margin: 5px;">
+        <strong>Frequency:</strong> <span id="wind-frequency">-- Hz</span>
+      </div>
+      <div style="margin: 5px;">
+        <strong>Packets:</strong> <span id="wind-packets">--</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tack Detection Section -->
+  <div class="container" style="text-align: center; background-color: #e8f4f8; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+    <h3 style="margin: 0 0 10px 0; color: #333;">Tack Detection</h3>
+    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 10px;">
+      <div style="margin: 5px;">
+        <strong>Status:</strong> <span id="tack-status">--</span>
+      </div>
+      <div style="margin: 5px;">
+        <strong>Last Maneuver:</strong> <span id="last-maneuver">--</span>
+      </div>
+    </div>
+    <div style="font-size: 0.9em; color: #666;">
+      <span id="tack-stats">--</span>
+    </div>
+  </div>
+  
+  <div id="chart-apparent-wind" class="container"></div>
+  <div id="chart-stw" class="container"></div>
+  <div id="chart-wind" class="container"></div>
+  <div id="chart-vmg-percent" class="container"></div>
+
+<script>
+  function createMultiSeriesChart(container, title, yAxisTitle, yMin=0, yMax=360, isSTW=false) {
+    return new Highcharts.Chart({
+      chart: { renderTo: container },
+      title: { text: title },
+      series: isSTW ?
+        [
+          { name: 'STW (knots)', data: [] },
+          { name: 'VMG (knots)', data: [] }
+        ] :
+        [
+          { name: title.includes('Apparent') ? 'AWS(*10) (knots)' : 'TWS(*10) (knots)', data: [] },
+          { name: title.includes('Apparent') ? 'AWA (degrees)' : 'TWA (degrees)', data: [] }
+        ],
+      plotOptions: {
+        line: { animation: false, dataLabels: { enabled: false } }
+      },
+      xAxis: {
+        type: 'datetime',
+        dateTimeLabelFormats: { second: '%H:%M:%S' }
+      },
+      yAxis: {
+        title: { text: yAxisTitle },
+        min: yMin,
+        max: yMax
+      },
+      legend: {
+        enabled: true
+      },
+      credits: { enabled: false }
+    });
+  }
+
+  Highcharts.setOptions({
+    time: {
+        useUTC: false // Use local time instead of UTC
+        // timezone: 'America/New_York' // Uncomment this line if needed
+    }
+  });
+
+  // Create charts with a wider y-axis range to accommodate both wind speed and angle values
+  const apparentWindChart = createMultiSeriesChart('chart-apparent-wind', 'Apparent Wind', 'Value', 0, 360);
+  const stwChart = createMultiSeriesChart('chart-stw', 'Speed Through Water', 'Knots', 0, 25, true);
+  const windChart = createMultiSeriesChart('chart-wind', 'True Wind Data', 'Value', 0, 360);
+  const vmgPercentChart = new Highcharts.Chart({
+    chart: { renderTo: 'chart-vmg-percent' },
+    title: { text: 'VMG as % of TWS' },
+    series: [{ name: 'VMG/TWS %', data: [] }],
+    plotOptions: {
+      line: { animation: false, dataLabels: { enabled: false } }
+    },
+    xAxis: {
+      type: 'datetime',
+      dateTimeLabelFormats: { second: '%H:%M:%S' }
+    },
+    yAxis: {
+      title: { text: 'Percentage (%)' },
+      min: 0,
+      max: 100
+    },
+    legend: {
+      enabled: true
+    },
+    credits: { enabled: false }
+  });
+
+  // Initialize title variables for the charts
+  let currentApparentWindTitle = 'Apparent Wind';
+  let currentSTWTitle = 'Speed Through Water';
+  let currentWindTitle = 'True Wind Data';
+  let currentVMGPercentTitle = 'VMG as % of TWS';
+
+  function processWindData(windData, dataLen) {
+    const timestamp = (new Date()).getTime();
+    
+    // Update wind statistics display
+    updateWindStatistics(windData);
+    
+    // Update Apparent Wind data
+    const aws = parseFloat(windData.aws);
+    const awa = parseFloat(windData.awa);
+    
+    if (!isNaN(aws)) {
+      if (apparentWindChart.series[0].data.length > dataLen) {
+        apparentWindChart.series[0].addPoint([timestamp, aws*10], true, true, true);
+      } else {
+        apparentWindChart.series[0].addPoint([timestamp, aws*10], true, false, true);
+      }
+    }
+    
+    if (!isNaN(awa)) {
+      if (apparentWindChart.series[1].data.length > dataLen) {
+        apparentWindChart.series[1].addPoint([timestamp, awa], true, true, true);
+      } else {
+        apparentWindChart.series[1].addPoint([timestamp, awa], true, false, true);
+      }
+    }
+    updateApparentWindTitle();
+    
+    // Update STW and VMG data
+    const stw = parseFloat(windData.stw);
+    const vmg = parseFloat(windData.vmg);
+    
+    if (!isNaN(stw)) {
+      if (stwChart.series[0].data.length > dataLen) {
+        stwChart.series[0].addPoint([timestamp, stw], true, true, true);
+      } else {
+        stwChart.series[0].addPoint([timestamp, stw], true, false, true);
+      }
+    }
+    
+    if (!isNaN(vmg)) {
+      if (stwChart.series[1].data.length > dataLen) {
+        stwChart.series[1].addPoint([timestamp, vmg], true, true, true);
+      } else {
+        stwChart.series[1].addPoint([timestamp, vmg], true, false, true);
+      }
+    }
+    updateSTWTitle();
+    
+    // Update True Wind data
+    const tws = parseFloat(windData.tws);
+    const twa = parseFloat(windData.twa);
+    
+    if (!isNaN(tws)) {
+      if (windChart.series[0].data.length > dataLen) {
+        windChart.series[0].addPoint([timestamp, tws*10], true, true, true);
+      } else {
+        windChart.series[0].addPoint([timestamp, tws*10], true, false, true);
+      }
+      
+      // Calculate VMG as percentage of TWS
+      calculateVMGPercent(timestamp, tws, dataLen);
+    }
+    
+    if (!isNaN(twa)) {
+      if (windChart.series[1].data.length > dataLen) {
+        windChart.series[1].addPoint([timestamp, twa], true, true, true);
+      } else {
+        windChart.series[1].addPoint([timestamp, twa], true, false, true);
+      }
+    }
+    updateWindTitle();
+  }
+  
+  // Function to update wind statistics display
+  function updateWindStatistics(windData) {
+    // Update wind frequency
+    const windFreq = parseFloat(windData.windFreq);
+    if (!isNaN(windFreq)) {
+      document.getElementById('wind-frequency').textContent = windFreq.toFixed(2) + ' Hz';
+    } else {
+      document.getElementById('wind-frequency').textContent = '-- Hz';
+    }
+    
+    // Update wind packet count
+    const windPackets = parseInt(windData.windPackets);
+    if (!isNaN(windPackets)) {
+      document.getElementById('wind-packets').textContent = windPackets.toLocaleString();
+    } else {
+      document.getElementById('wind-packets').textContent = '--';
+    }
+    
+    // Update tack detection information
+    updateTackDetection(windData);
+  }
+  
+  // Function to update tack detection display
+  function updateTackDetection(windData) {
+    // Update tack status
+    const inManeuver = windData.inManeuver === 'true';
+    const statusElement = document.getElementById('tack-status');
+    if (statusElement) {
+      statusElement.textContent = inManeuver ? 'In Maneuver' : 'Normal';
+      statusElement.style.color = inManeuver ? '#d9534f' : '#5cb85c';
+      statusElement.style.fontWeight = inManeuver ? 'bold' : 'normal';
+    }
+    
+    // Update last maneuver
+    const lastManeuver = parseInt(windData.lastManeuver);
+    const maneuverElement = document.getElementById('last-maneuver');
+    if (maneuverElement && !isNaN(lastManeuver)) {
+      const maneuverNames = {
+        0: 'None',
+        1: 'Tack Port→Starboard',
+        2: 'Tack Starboard→Port',
+        3: 'Jibe Port→Starboard',
+        4: 'Jibe Starboard→Port'
+      };
+      maneuverElement.textContent = maneuverNames[lastManeuver] || 'Unknown';
+    }
+    
+    // Update tack statistics
+    const tackStats = windData.tackStats;
+    const statsElement = document.getElementById('tack-stats');
+    if (statsElement && tackStats) {
+      statsElement.textContent = tackStats;
+    }
+  }
+  
+  function calculateVMGPercent(timestamp, twsValue, dataLen) {
+    try {
+      // Only calculate if we have VMG data and TWS is valid
+      if (stwChart.series[1].data.length > 0 && twsValue > 0) {
+        const latestVMG = stwChart.series[1].data[stwChart.series[1].data.length - 1].y;
+        
+        // Calculate percentage with bounds checking
+        // Use a simple calculation to minimize processing
+        let percentValue = 0;
+        if (twsValue > 0.1) { // Avoid very small denominators
+          percentValue = Math.min(Math.max((latestVMG / twsValue) * 100, 0), 100);
+        }
+        
+        // Add point with absolutely minimal redrawing
+        // Only keep track of the last 60 points maximum to reduce memory usage
+        if (vmgPercentChart.series[0].data.length > dataLen) {
+          vmgPercentChart.series[0].addPoint([timestamp, percentValue], false, true, false);
+        } else {
+          vmgPercentChart.series[0].addPoint([timestamp, percentValue], false, false, false);
+        }
+        
+        // Update title and redraw chart once, but only every other time to reduce load
+        // Use a static counter to track this
+        calculateVMGPercent.updateCounter = (calculateVMGPercent.updateCounter || 0) + 1;
+        if (calculateVMGPercent.updateCounter % 2 === 0) {
+          updateVMGPercentTitle(percentValue);
+          vmgPercentChart.redraw(false);
+        }
+      }
+    } catch (e) {
+      // Silently catch any errors to prevent crashes
+      console.error("Error in VMG percent calculation:", e);
+    }
+  }
+
+  // Function to update apparent wind chart title
+  function updateApparentWindTitle() {
+    let awsValue = "N/A";
+    let awaValue = "N/A";
+    
+    if (apparentWindChart.series[0].data.length > 0) {
+      // Divide by 10 to get actual AWS value for title (chart stores AWS*10)
+      awsValue = (apparentWindChart.series[0].data[apparentWindChart.series[0].data.length - 1].y / 10).toFixed(1);
+    }
+    
+    if (apparentWindChart.series[1].data.length > 0) {
+      awaValue = apparentWindChart.series[1].data[apparentWindChart.series[1].data.length - 1].y.toFixed(1);
+    }
+    
+    currentApparentWindTitle = `Apparent: AWS ${awsValue} knots, AWA ${awaValue}&deg;`;
+    apparentWindChart.setTitle({ text: currentApparentWindTitle });
+  }
+
+  // Function to update true wind chart title
+  function updateWindTitle() {
+    let twsValue = "N/A";
+    let twaValue = "N/A";
+    
+    if (windChart.series[0].data.length > 0) {
+      // Divide by 10 to get actual TWS value for title (chart stores TWS*10)
+      twsValue = (windChart.series[0].data[windChart.series[0].data.length - 1].y / 10).toFixed(1);
+    }
+    
+    if (windChart.series[1].data.length > 0) {
+      twaValue = windChart.series[1].data[windChart.series[1].data.length - 1].y.toFixed(1);
+    }
+    
+    currentWindTitle = `True: TWS ${twsValue} knots, TWA ${twaValue}&deg;`;
+    windChart.setTitle({ text: currentWindTitle });
+  }
+
+  // Function to update STW chart title
+  function updateSTWTitle() {
+    let stwValue = "N/A";
+    let vmgValue = "N/A";
+    
+    if (stwChart.series[0].data.length > 0) {
+      stwValue = stwChart.series[0].data[stwChart.series[0].data.length - 1].y.toFixed(1);
+    }
+    
+    if (stwChart.series[1].data.length > 0) {
+      vmgValue = stwChart.series[1].data[stwChart.series[1].data.length - 1].y.toFixed(1);
+    }
+    
+    currentSTWTitle = `STW: ${stwValue} knots, VMG: ${vmgValue} knots`;
+    stwChart.setTitle({ text: currentSTWTitle });
+  }
+  
+  // Function to update VMG Percent chart title
+  function updateVMGPercentTitle(percentValue) {
+    const formattedPercent = percentValue.toFixed(1);
+    currentVMGPercentTitle = `VMG/TWS: ${formattedPercent}%`;
+    vmgPercentChart.setTitle({ text: currentVMGPercentTitle });
+  }
+
+  //let baseURL = "http://192.168.68.68";
+  let baseURL = ""; // to go to local (ESP32)
+  
+  // Reduce data history from 300 to 60 points (5 minutes at 5-second intervals)
+  // This significantly reduces memory usage and processing load
+  const dataHistoryLength = 60;
+  
+  // Initialize Server-Sent Events for wind data
+  if (!!window.EventSource) {
+    var source = new EventSource('/events');
+    
+    source.addEventListener('open', function(e) {
+      console.log("Wind Events Connected");
+    }, false);
+
+    source.addEventListener('error', function(e) {
+      if (e.target.readyState != EventSource.OPEN) {
+        console.log("Wind Events Disconnected");
+      }
+    }, false);
+    
+    source.addEventListener('wind_data', function(e) {
+      console.log("wind_data received", e.data);
+      try {
+        const rawWindData = JSON.parse(e.data);
+        
+        // Calculate true wind parameters using calculations.js
+        if (typeof calcTrueWindAngle === 'function') {
+          const windCalc = calcTrueWindAngle(
+            parseFloat(rawWindData.aws),    // AWS in m/s
+            parseFloat(rawWindData.awa),    // AWA in degrees
+            parseFloat(rawWindData.stw)     // STW in m/s
+          );
+          
+          // Add calculated values to the data object
+          rawWindData.tws = windCalc.TWS;
+          rawWindData.twa = windCalc.TWA;
+          rawWindData.vmg = windCalc.VMG;
+          
+          console.log("Calculated wind data:", {
+            tws: windCalc.TWS,
+            twa: windCalc.TWA,
+            vmg: windCalc.VMG
+          });
+        } else {
+          console.error("calcTrueWindAngle function not available");
+          // Set default values to prevent N/A display
+          rawWindData.tws = 0;
+          rawWindData.twa = 0;
+          rawWindData.vmg = 0;
+        }
+        
+        processWindData(rawWindData, dataHistoryLength);
+      } catch (error) {
+        console.error("Error processing wind data:", error);
+      }
+    }, false);
+  } else {
+    console.error("Browser does not support Server-Sent Events");
+  }
+</script>
+<script src="menu.js"></script>
+</body>
+</html>

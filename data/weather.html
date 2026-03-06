@@ -1,0 +1,154 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="highcharts.js"></script>
+  <style>
+    body {
+      min-width: 310px;
+      max-width: 800px;
+      height: auto;
+      margin: 0 auto;
+    }
+    h2 {
+      font-family: Arial;
+      font-size: 2.5rem;
+      text-align: center;
+    }
+    .container {
+      margin-bottom: 20px; /* Space between charts */
+    }
+  </style>
+</head>
+<body>
+  <h2>Weather</h2>
+  <div id="chart-temperature" class="container"></div>
+  <div id="chart-humidity" class="container"></div>
+  <div id="chart-pressure" class="container"></div>
+
+<script>
+  function createChart(container, title, yAxisTitle, yMin=0, yMax=100) {
+    return new Highcharts.Chart({
+      chart: { renderTo: container },
+      title: { text: title },
+      series: [{ showInLegend: false, data: [] }],
+      plotOptions: {
+        line: { animation: false, dataLabels: { enabled: true } }
+      },
+      xAxis: {
+        type: 'datetime',
+        dateTimeLabelFormats: { second: '%H:%M:%S' }
+      },
+      yAxis: { 
+        title: { text: yAxisTitle },
+        min: yMin,
+        max: yMax
+      },
+      credits: { enabled: false }
+    });
+  }
+
+  Highcharts.setOptions({
+    time: {
+        useUTC: false // Use local time instead of UTC
+        // timezone: 'America/New_York' // Uncomment this line if needed
+    }
+  });
+
+  const chartT = createChart('chart-temperature', 'Cabin Temperature', 'Temperature (Fahrenheit)');
+  const chartH = createChart('chart-humidity', 'Humidity', 'Humidity (%)');
+  const chartP = createChart('chart-pressure', 'Atmospheric Pressure', 'Pressure (hPa)', 950, 1050);
+
+  // Initialize title variables for each chart
+  let currentTempTitle = 'Cabin Temperature';
+  let currentHumidTitle = 'Humidity';
+  let currentPressTitle = 'Atmospheric Pressure';
+
+  function processWeatherData(weatherData) {
+    var x = (new Date()).getTime();
+    
+    // Update temperature chart
+    var temp = parseFloat(weatherData.temperature);
+    if (!isNaN(temp)) {
+      if (chartT.series[0].data.length > 40) {
+        chartT.series[0].addPoint([x, temp], true, true, true);
+      } else {
+        chartT.series[0].addPoint([x, temp], true, false, true);
+      }
+      updateTempTitle(temp);
+    }
+    
+    // Update humidity chart
+    var humidity = parseFloat(weatherData.humidity);
+    if (!isNaN(humidity)) {
+      if (chartH.series[0].data.length > 40) {
+        chartH.series[0].addPoint([x, humidity], true, true, true);
+      } else {
+        chartH.series[0].addPoint([x, humidity], true, false, true);
+      }
+      updateHumidTitle(humidity);
+    }
+    
+    // Update pressure chart
+    var pressure = parseFloat(weatherData.pressure);
+    if (!isNaN(pressure)) {
+      if (chartP.series[0].data.length > 8640) {
+        chartP.series[0].addPoint([x, pressure], true, true, true);
+      } else {
+        chartP.series[0].addPoint([x, pressure], true, false, true);
+      }
+      updatePressTitle(pressure);
+    }
+  }
+
+  // Function to update temperature chart title
+  function updateTempTitle(y) {
+    currentTempTitle = `Cabin Temperature: ${y.toFixed(1)} F`;
+    chartT.setTitle({ text: currentTempTitle });
+  }
+
+  // Function to update humidity chart title
+  function updateHumidTitle(y) {
+    currentHumidTitle = `Humidity: ${y.toFixed(1)} %`;
+    chartH.setTitle({ text: currentHumidTitle });
+  }
+
+  // Function to update pressure chart title
+  function updatePressTitle(y) {
+    currentPressTitle = `Atmospheric Pressure: ${y.toFixed(1)} hPa`;
+    chartP.setTitle({ text: currentPressTitle });
+  }
+
+  //let baseURL = "http://192.168.68.68";
+  let baseURL = ""; // to go to local (ESP32)
+  
+  // Initialize Server-Sent Events for weather data
+  if (!!window.EventSource) {
+    var source = new EventSource('/events');
+    
+    source.addEventListener('open', function(e) {
+      console.log("Weather Events Connected");
+    }, false);
+
+    source.addEventListener('error', function(e) {
+      if (e.target.readyState != EventSource.OPEN) {
+        console.log("Weather Events Disconnected");
+      }
+    }, false);
+    
+    source.addEventListener('weather_data', function(e) {
+      console.log("weather_data received", e.data);
+      try {
+        const weatherData = JSON.parse(e.data);
+        processWeatherData(weatherData);
+      } catch (error) {
+        console.error("Error processing weather data:", error);
+      }
+    }, false);
+  } else {
+    console.error("Browser does not support Server-Sent Events");
+  }
+</script>
+<script src="menu.js"></script>
+</body>
+</html>

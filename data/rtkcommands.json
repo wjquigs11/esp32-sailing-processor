@@ -1,0 +1,13 @@
+{
+  "commandsInUse": [
+    { "command": "GPGSV",      "interval": 30 },
+    { "command": "GPGSVH",     "interval": 30 },
+    { "command": "UNIHEADINGA","interval": 10 },
+    { "command": "GNGGA",      "interval": 30 },
+    { "command": "GPHPR",      "interval": 0.5 },
+    { "command": "GPTHS",      "interval": 0 },
+    { "command": "GPRMC",      "interval": 0.5 },
+    { "command": "MODE"},
+    { "command": "CONFIG"}
+  ]
+}
